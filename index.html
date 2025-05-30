@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  
+  <title>Dictionary Search & Save</title>
+   <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+     <button onclick="window.location.href='welcome.html'"style='margin-bottom=5px'>Main Menu</button>
+  <h1>Dictionary Search</h1>
+  
+  
+  <div style="margin-top: px; display: flex; gap: 10px;">
+  <input type="text" id="wordInput" placeholder="Enter a word" />
+
+    
+  <button onclick="searchWord()">Search</button>
+  
+ 
+  </div>
+
+  <div id="result" style="margin-bottom:20px;"></div>
+
+
+
+  <button id="saveBtn" onclick="saveCurrentWord()" disable>Save Word</button>
+  
+
+  
+  <script>
+    let currentWord = '';
+    let currentDefinition = '';
+
+    async function searchWord() {
+      const word = document.getElementById('wordInput').value.trim();
+      if (!word) {
+        alert('Please enter a word');
+        return;
+      }
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = 'Loading...';
+      try {
+        const res = await fetch(`api.php?word=${encodeURIComponent(word)}`);
+        if (!res.ok) throw new Error("Word not found");
+        const data = await res.json();
+        const entry = data[0];
+        const meaningsHtml = entry.meanings.map(m =>
+          `<p><strong>${m.partOfSpeech}</strong>: ${m.definitions[0].definition}</p>`
+        ).join("");
+        resultDiv.innerHTML = `
+          <h3>${entry.word}</h3>
+          ${meaningsHtml}
+        `;
+        currentWord = entry.word;
+        currentDefinition = entry.meanings[0]?.definitions[0]?.definition || '';
+        document.getElementById('saveBtn').disabled = currentDefinition === '';
+      } catch (err) {
+        resultDiv.innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
+        currentWord = '';
+        currentDefinition = '';
+        document.getElementById('saveBtn').disabled = true;
+      }
+    }
+     async function saveCurrentWord() {
+      if (!currentWord || !currentDefinition) {
+        alert('No word or definition to save.');
+        return;
+      }
+      try {
+        const res = await fetch('save_word.php', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ word: currentWord, definition: currentDefinition })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+          alert(`Word "${currentWord}" saved successfully!`);
+        } else {
+          alert(`Save failed: ${data.message || 'Unknown error'}`);
+        }
+      } catch (e) {
+        alert('Save failed, see console.');
+        console.error(e);
+      }
+    }
+    
+ 
+
+</script>
+</body>
+</html>

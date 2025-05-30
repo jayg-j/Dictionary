@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dictionary Search & Save</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div style="margin-top: px; display: flex; gap: 10px;"></div>
+  <button onclick="window.location.href='welcome.html'">Main Menu</button>
+</div>
+  <h2>Saved Words</h2>
+   <button onclick="deleteSavedWords()" style="margin-left: 10px;">Delete All Saved Words</button>
+   
+   <button onclick="loadSavedWords()" style="margin-left: 10px;">Load</button>
+  <div id="savedWords"></div>
+
+  <script>
+    let currentWord = '';
+    let currentDefinition = '';
+
+   
+   
+
+   async function loadSavedWords() {
+      const savedDiv = document.getElementById('savedWords');
+      savedDiv.innerHTML = 'Loading saved words...';
+      try {
+        const res = await fetch('get_saved_words.php');
+        if (!res.ok) throw new Error('Failed to load saved words');
+        const data = await res.json();
+        if (!data.length) {
+          savedDiv.innerHTML = '<p>No saved words yet.</p>';
+          return;
+        }
+        const listHtml = data.map(item => `
+          <div style="border-bottom: 1px solid #ccc; padding: 8px 0;">
+            <strong>${item.word}</strong><br/>
+            <em>${item.definition}</em><br/>
+            <small>Saved at: ${item.saved_at}</small><br/>
+            <button onclick="deleteWord('${item.word.replace(/'/g, "\\'")}')">Delete</button>
+          </div>
+        `).join('');
+        savedDiv.innerHTML = listHtml;
+      } catch (err) {
+        savedDiv.innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
+      }
+    }
+
+    async function deleteWord(word) {
+      if (!confirm(`Are you sure you want to delete "${word}"?`)) return;
+      try {
+        const res = await fetch('delete_words.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ word })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+          alert(`"${word}" deleted successfully.`);
+          loadSavedWords();
+        } else {
+          alert(`Delete failed: ${data.message}`);
+        }
+      } catch (err) {
+        alert('Delete request failed.');
+        console.error(err);
+      }
+    }
+
+    async function deleteSavedWords() {
+      if (!confirm("Are you sure you want to delete all saved words?")) return;
+      try {
+        const res = await fetch('delete_saved_words.php', { method: 'POST' });
+        const data = await res.json();
+        if (data.status === 'success') {
+          alert("All saved words deleted.");
+          document.getElementById('savedWords').innerHTML = '';
+        } else {
+          alert("Delete failed: " + data.message);
+        }
+      } catch (err) {
+        alert("An error occurred while deleting saved words.");
+        console.error(err);
+      }
+    }
+  </script>
